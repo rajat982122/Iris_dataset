@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Iris Predictor — Live</title>
+<style>
+  :root{ --bg:#0f1724; --card:#0b1220; --accent:#7dd3fc; --muted:#94a3b8; --glass: rgba(255,255,255,0.04); --card-radius:16px; }
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  body{background: linear-gradient(180deg,#071024 0%, #071a2e 100%);color:#e6eef8;display:flex;align-items:center;justify-content:center;padding:32px;}
+  .container{width:980px;max-width:96%;background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border-radius: var(--card-radius);padding:28px;box-shadow: 0 10px 30px rgba(2,6,23,0.6);display:grid;grid-template-columns: 1fr 380px;gap:20px;align-items:start;backdrop-filter: blur(8px);}
+  header{grid-column:1/-1;display:flex;align-items:center;gap:16px;}
+  .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#60a5fa);display:flex;align-items:center;justify-content:center;font-weight:700;color:#052235;font-size:20px;box-shadow: 0 6px 18px rgba(45, 212, 191, 0.08), inset 0 -6px 14px rgba(0,0,0,0.25);}
+  h1{margin:0;font-size:20px} p.lead{margin:0;color:var(--muted);font-size:13px}
+  .controls{padding:18px;background:var(--glass);border-radius:12px;border: 1px solid rgba(255,255,255,0.03);}
+  .row{display:flex;gap:14px;align-items:center;margin-bottom:18px;}
+  .label{width:160px;font-size:14px;color:var(--muted);}
+  .slider-wrap{flex:1;display:flex;gap:12px;align-items:center;}
+  input[type="range"]{-webkit-appearance:none;width:100%;height:8px;background:linear-gradient(90deg,#0f1724,#0f1724);border-radius:6px;outline:none;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,0.45);border:3px solid rgba(255,255,255,0.06);}
+  .value{min-width:56px;text-align:right;font-weight:600;color:#dff7ff;}
+  .visual{display:flex;align-items:end;gap:8px;height:160px;padding:18px;background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));border-radius:12px;border:1px solid rgba(255,255,255,0.02);margin-top:6px;}
+  .bar{width:18%;background:linear-gradient(180deg,#34d399,#059669);border-radius:6px 6px 2px 2px;display:flex;align-items:end;justify-content:center;transition: height 0.18s cubic-bezier(.2,.9,.2,1);}
+  .bar .label{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;color:#052235;font-weight:700;padding-bottom:6px;}
+  .preview{padding:18px;background: linear-gradient(180deg, rgba(10,14,20,0.3), rgba(10,14,20,0.2));border-radius:12px;border:1px solid rgba(255,255,255,0.03);}
+  .result{margin-top:14px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);font-weight:700;color:#cdeaf6;text-align:center;}
+  footer{grid-column:1/-1;margin-top:8px;text-align:center;color:var(--muted);font-size:13px}
+  @media (max-width:880px){.container{grid-template-columns:1fr; padding:18px}}
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">IRIS</div>
+      <div>
+        <h1>Iris Predictor — Live</h1>
+        <p class="lead">Adjust sliders and see predicted species instantly.</p>
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="row"><div class="label">Sepal Length (cm)</div><div class="slider-wrap"><input id="sepalLength" type="range" min="4.0" max="8.0" step="0.1" value="5.1"><div class="value" id="valSL">5.1</div></div></div>
+      <div class="row"><div class="label">Sepal Width (cm)</div><div class="slider-wrap"><input id="sepalWidth" type="range" min="2.0" max="5.0" step="0.1" value="3.5"><div class="value" id="valSW">3.5</div></div></div>
+      <div class="row"><div class="label">Petal Length (cm)</div><div class="slider-wrap"><input id="petalLength" type="range" min="1.0" max="7.0" step="0.1" value="1.4"><div class="value" id="valPL">1.4</div></div></div>
+      <div class="row"><div class="label">Petal Width (cm)</div><div class="slider-wrap"><input id="petalWidth" type="range" min="0.1" max="2.5" step="0.1" value="0.2"><div class="value" id="valPW">0.2</div></div></div>
+      <div class="visual">
+        <div class="bar" id="barSL"><div class="label">SL</div></div>
+        <div class="bar" id="barSW"><div class="label">SW</div></div>
+        <div class="bar" id="barPL"><div class="label">PL</div></div>
+        <div class="bar" id="barPW"><div class="label">PW</div></div>
+      </div>
+    </div>
+
+    <aside class="preview">
+      <h3>Prediction</h3>
+      <div class="result" id="result">Prediction: —</div>
+    </aside>
+
+    <footer>Built with ❤️ — Live prediction from Flask API.</footer>
+  </div>
+
+<script>
+  const sepalLength = document.getElementById('sepalLength');
+  const sepalWidth  = document.getElementById('sepalWidth');
+  const petalLength = document.getElementById('petalLength');
+  const petalWidth  = document.getElementById('petalWidth');
+  const valSL = document.getElementById('valSL');
+  const valSW = document.getElementById('valSW');
+  const valPL = document.getElementById('valPL');
+  const valPW = document.getElementById('valPW');
+  const barSL = document.getElementById('barSL');
+  const barSW = document.getElementById('barSW');
+  const barPL = document.getElementById('barPL');
+  const barPW = document.getElementById('barPW');
+  const resultBox = document.getElementById('result');
+
+  function scaleToHeight(val, min, max, maxHeight=150) {
+    const ratio = (val - min) / (max - min);
+    return Math.max(6, Math.round(ratio * maxHeight));
+  }
+
+  function updateVisuals() {
+    valSL.textContent = parseFloat(sepalLength.value).toFixed(1);
+    valSW.textContent = parseFloat(sepalWidth.value).toFixed(1);
+    valPL.textContent = parseFloat(petalLength.value).toFixed(1);
+    valPW.textContent = parseFloat(petalWidth.value).toFixed(1);
+
+    barSL.style.height = scaleToHeight(parseFloat(sepalLength.value), 4.0, 8.0) + 'px';
+    barSW.style.height = scaleToHeight(parseFloat(sepalWidth.value), 2.0, 5.0) + 'px';
+    barPL.style.height = scaleToHeight(parseFloat(petalLength.value), 1.0, 7.0) + 'px';
+    barPW.style.height = scaleToHeight(parseFloat(petalWidth.value), 0.1, 2.5) + 'px';
+  }
+
+  async function getPrediction() {
+    const payload = {
+      sepal_length: parseFloat(sepalLength.value),
+      sepal_width: parseFloat(sepalWidth.value),
+      petal_length: parseFloat(petalLength.value),
+      petal_width: parseFloat(petalWidth.value)
+    };
+
+    try {
+      const res = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.prediction !== undefined) {
+        resultBox.textContent = 'Prediction: ' + data.prediction;
+      } else if (data.error) {
+        resultBox.textContent = 'Error: ' + data.error;
+      }
+    } catch (err) {
+      resultBox.textContent = 'Error: ' + err.message;
+    }
+  }
+
+  function updateAndPredict() {
+    updateVisuals();
+    getPrediction();
+  }
+
+  [sepalLength, sepalWidth, petalLength, petalWidth].forEach(el => {
+    el.addEventListener('input', updateAndPredict);
+  });
+
+  updateAndPredict();
+</script>
+</body>
+</html>
